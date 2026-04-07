@@ -6,15 +6,29 @@ $API_URL = "https://api.telegram.org/bot$TOKEN/";
 // Obtener datos
 $update = json_decode(file_get_contents("php://input"), true);
 
-// Productos
-$productos = [
-    "pan" => ["nombre" => "Pan", "precio" => 1000],
-    "leche" => ["nombre" => "Leche", "precio" => 1200],
-    "huevos" => ["nombre" => "Huevos", "precio" => 2500]
+// Lista de productos y pasillos
+$pasillos = [
+    "carne" => "Pasillo 1",
+    "queso" => "Pasillo 1",
+    "jamon" => "Pasillo 1",
+
+    "leche" => "Pasillo 2",
+    "yogurth" => "Pasillo 2",
+    "cereal" => "Pasillo 2",
+
+    "bebidas" => "Pasillo 3",
+    "jugos" => "Pasillo 3",
+
+    "pan" => "Pasillo 4",
+    "pasteles" => "Pasillo 4",
+    "tortas" => "Pasillo 4",
+
+    "detergente" => "Pasillo 5",
+    "lavaloza" => "Pasillo 5"
 ];
 
 // Función enviar mensaje
-function sendMessage($chat_id, $text, $keyboard = null) {
+function sendMessage($chat_id, $text) {
     global $API_URL;
 
     $data = [
@@ -22,83 +36,28 @@ function sendMessage($chat_id, $text, $keyboard = null) {
         "text" => $text
     ];
 
-    if ($keyboard) {
-        $data["reply_markup"] = json_encode($keyboard);
-    }
-
     file_get_contents($API_URL . "sendMessage?" . http_build_query($data));
 }
 
-// MENÚ PRINCIPAL
-function menuPrincipal() {
-    return [
-        "inline_keyboard" => [
-            [["text" => "🛒 Ver productos", "callback_data" => "ver_productos"]],
-            [["text" => "🧾 Ver carrito", "callback_data" => "carrito"]]
-        ]
-    ];
-}
-
-// LISTA DE PRODUCTOS
-function listaProductos($productos) {
-    $keyboard = [];
-
-    foreach ($productos as $key => $prod) {
-        $keyboard[] = [
-            ["text" => $prod["nombre"] . " - $" . $prod["precio"], "callback_data" => $key]
-        ];
-    }
-
-    $keyboard[] = [["text" => "⬅️ Volver", "callback_data" => "menu"]];
-
-    return ["inline_keyboard" => $keyboard];
-}
-
-// INICIO
+// Cuando el usuario escribe
 if (isset($update["message"])) {
 
     $chat_id = $update["message"]["chat"]["id"];
-    $text = $update["message"]["text"];
+    $text = strtolower($update["message"]["text"]); // pasar a minúsculas
 
+    // Comando start
     if ($text == "/start") {
-        sendMessage($chat_id, "🏪 Bienvenido al minimarket\nSelecciona una opción:", menuPrincipal());
-    }
-}
-
-// BOTONES
-if (isset($update["callback_query"])) {
-
-    $callback = $update["callback_query"];
-    $data = $callback["data"];
-    $chat_id = $callback["message"]["chat"]["id"];
-
-    // Mostrar productos
-    if ($data == "ver_productos") {
-        sendMessage($chat_id, "🛒 Lista de productos:", listaProductos($productos));
+        sendMessage($chat_id, "🏪 Bienvenido al supermercado\n\nEscribe el nombre de un producto para saber su pasillo.\n\nEjemplo: leche, pan, carne");
+        exit;
     }
 
-    // Volver al menú
-    elseif ($data == "menu") {
-        sendMessage($chat_id, "🏪 Menú principal:", menuPrincipal());
+    // Buscar producto
+    if (isset($pasillos[$text])) {
+        $respuesta = "📍 El producto *$text* está en " . $pasillos[$text];
+    } else {
+        $respuesta = "❌ Producto no encontrado.\nIntenta con: carne, leche, pan, detergente...";
     }
 
-    // Carrito (simulado)
-    elseif ($data == "carrito") {
-        sendMessage($chat_id, "🧾 Tu carrito está vacío (próximamente 😄)");
-    }
-
-    // Producto seleccionado
-    elseif (isset($productos[$data])) {
-        $prod = $productos[$data];
-
-        $mensaje = "🛒 Agregaste:\n" .
-                   $prod["nombre"] . "\n💰 $" . $prod["precio"];
-
-        sendMessage($chat_id, $mensaje);
-    }
-
-    else {
-        sendMessage($chat_id, "❌ Opción no válida");
-    }
+    sendMessage($chat_id, $respuesta);
 }
 ?>
